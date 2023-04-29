@@ -23,7 +23,6 @@ class FL_Forest():
             for tree in forest.estimators_:
                 self.mergedForest.estimators_.append(tree)
                 self.n_estimators += 1
-                print(tree)
 
         self.n_rf = len(input_Forests)
         exampleForest = input_Forests[0]

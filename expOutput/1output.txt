@@ -1,25 +1,30 @@
 Confusion matrix for the test set RF with 10 trees
-Predicted         0         1
-Actual                       
-0          0.764909  0.015537
-1          0.123823  0.095731
+0.7278654542920848
+Predicted         0        1
+Actual                      
+0          0.768048  0.01538
+1          0.113622  0.10295
 Confusion matrix for the test set RF with 50 trees
+0.7284577062430324
 Predicted         0         1
 Actual                       
-0          0.770402  0.010044
-1          0.124765  0.094790
+0          0.771814  0.011613
+1          0.114407  0.102166
 Confusion matrix for the test set RF with 100 trees
+0.7291353121516164
 Predicted         0         1
 Actual                       
-0          0.771343  0.009102
-1          0.124922  0.094633
+0          0.774011  0.009416
+1          0.114721  0.101852
 Confusion matrix for the test set RF with 200 trees
+0.7305227494425864
 Predicted         0         1
 Actual                       
-0          0.772913  0.007533
-1          0.124608  0.094947
+0          0.774482  0.008945
+1          0.114250  0.102323
 Confusion matrix for the test set RF with 400 trees
+0.7299601100891863
 Predicted         0         1
 Actual                       
-0          0.774796  0.005650
-1          0.124451  0.095104
+0          0.774168  0.009259
+1          0.114407  0.102166

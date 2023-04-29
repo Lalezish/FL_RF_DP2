@@ -1,25 +1,36 @@
 Confusion matrix for the test set DP_RF with epsilon: 0.01
+0.5217391304347826
 Predicted         0         1
 Actual                       
-0          0.780446  0.000000
-1          0.215631  0.003923
+0          0.783427  0.000000
+1          0.207156  0.009416
 Confusion matrix for the test set DP_RF with epsilon: 0.1
-Predicted         0
-Actual             
-0          0.780446
-1          0.219554
+0.5010869565217392
+Predicted         0         1
+Actual                       
+0          0.783427  0.000000
+1          0.216102  0.000471
 Confusion matrix for the test set DP_RF with epsilon: 0.5
+0.5489130434782609
+Predicted         0         1
+Actual                       
+0          0.783427  0.000000
+1          0.195386  0.021186
+Confusion matrix for the test set DP_RF with epsilon: 1.0
+0.5898550724637681
 Predicted         0        1
 Actual                      
-0          0.780446  0.00000
-1          0.198525  0.02103
-Confusion matrix for the test set DP_RF with epsilon: 1.0
-Predicted         0         1
-Actual                       
-0          0.780446  0.000000
-1          0.168236  0.051318
+0          0.783427  0.00000
+1          0.177652  0.03892
 Confusion matrix for the test set DP_RF with epsilon: 5.0
+0.6293478260869565
 Predicted         0         1
 Actual                       
-0          0.780446  0.000000
-1          0.158977  0.060578
+0          0.783427  0.000000
+1          0.160546  0.056026
+Confusion matrix for the test set DP_RF with epsilon: inf
+0.6452898550724637
+Predicted         0         1
+Actual                       
+0          0.783427  0.000000
+1          0.153641  0.062932

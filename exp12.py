@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from diffprivlib.utils import PrivacyLeakWarning
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, roc_auc_score
 from diffprivlib.models import RandomForestClassifier as DP_RandomForestClassifier
 
 from sklearn.model_selection import train_test_split
@@ -136,29 +136,39 @@ x_test = min_max_scaler.transform(x_test)
 ### END OF DATA PREPROCESSING
 
 ### Experiments
+# 1: Traditional Random Forests with 10, 50, 100, 200, 400 trees
+# 2: Differential Private Random Forests with epsilon 0.01, 0.1, 0.5, 1.0, 5.0
 
 # 1: Traditinoal Random Forests
-n_trees = [10, 50, 100, 200, 400]
 with open("expOutput/1output.txt", "w") as f:
+    n_trees = [10, 50, 100, 200, 400]
     for n in n_trees:
         RF = RandomForestClassifier(n_estimators=n)
         RF.fit(x_train, y_train)
         pred = RF.predict(x_test)
         cm = pd.crosstab(pd.Series(y_test, name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
+        auc = roc_auc_score(y_test, pred)
+        print('AUC for the test-set with '+str(n)+" trees")
+        print(auc)
         print('Confusion matrix for the test set RF with '+str(n)+" trees")
         print(cm)
         print('Confusion matrix for the test set RF with '+str(n)+" trees", file=f)
+        print(auc, file=f)
         print(cm, file=f)
 
 # 2: Differential Private Random Forests
 with open("expOutput/2output.txt", "w") as f:
-    eps = [0.01, 0.1, 0.5, 1.0, 5.0]
+    eps = [0.01, 0.1, 0.5, 1.0, 5.0, float('inf')]
     for e in eps:
         DP_RF = DP_RandomForestClassifier(epsilon=e, n_estimators=400)
         DP_RF.fit(x_train, y_train)
         pred = DP_RF.predict(x_test)
         cm = pd.crosstab(pd.Series(y_test, name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
+        auc = roc_auc_score(y_test, pred)
+        print('AUC for the test-set with epsilon: ' + str(e))
+        print(auc)
         print('Confusion matrix for the test set DP_RF with epsilon: ' + str(e))
         print(cm)
         print('Confusion matrix for the test set DP_RF with epsilon: ' + str(e), file=f)
+        print(auc, file=f)
         print(cm, file=f)
