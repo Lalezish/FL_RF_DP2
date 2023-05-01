@@ -1,5 +1,6 @@
 # Author: Alexander Frid
 # Date: Spring 2023
+import itertools
 import time
 
 import numpy as np
@@ -167,10 +168,17 @@ y_test = np.concatenate([y_test_bottom, y_test_left, y_test_right])
 # 3: Federated traditional Random Forests
 with open("expOutput/3output.txt", "w") as f:
     n_trees = [10, 50, 100, 200, 400]
-    for n in n_trees:
-        RF_bot = RandomForestClassifier(n_estimators=n)
-        RF_left = RandomForestClassifier(n_estimators=n)
-        RF_right = RandomForestClassifier(n_estimators=n)
+    m_depths = [3, 5, 7, 11, None]
+    m_samples = [0.7, 0.8, 0.9, None]
+
+    params_list = list(itertools.product(n_trees, m_depths, m_samples))
+    params = [{'n_estimators': n_t, 'max_depth': m_d, 'max_samples': m_s} for n_t, m_d, m_s in params_list]
+    scores = []
+
+    for param in params:
+        RF_bot = RandomForestClassifier(**param)
+        RF_left = RandomForestClassifier(**param)
+        RF_right = RandomForestClassifier(**param)
         RF_bot.fit(x_train_bottom, y_train_bottom)
         RF_left.fit(x_train_left, y_train_left)
         RF_right.fit(x_train_right, y_train_right)
@@ -180,23 +188,43 @@ with open("expOutput/3output.txt", "w") as f:
         RF_merged = FLRF.mergeALL(Forests)
 
         pred = RF_merged.predict(x_test)
-
         cm = pd.crosstab(pd.Series(y_test, name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
         auc = roc_auc_score(y_test, pred)
-        print('AUC for the test-set with ' + str(n) + " trees")
-        print(auc)
-        print('Confusion matrix for the test set RF with ' + str(n) + " trees")
+        scores.append({'AUC': auc, 'Params': param})
+
+        # To console
+        print('PARAMS: ' + str(param))
+        print('AUC: ' + str(auc))
         print(cm)
-        print('Confusion matrix for the test set RF with ' + str(n) + " trees", file=f)
-        print(auc, file=f)
+        print('--------------------------------------------------------------------------------------')
+
+        # To file
+        print('PARAMS: ' + str(param), file=f)
+        print('AUC: ' + str(auc), file=f)
         print(cm, file=f)
+        print('--------------------------------------------------------------------------------------', file=f)
+
+    sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
+    # To console
+    print('Best Params: \n')
+    for s in sortedScores:
+        print(s)
+    # To file
+    print('Best Params: \n', file=f)
+    for s in sortedScores:
+        print(s)
+
 # 4: Federated Differential Private Random Forests
 with open("expOutput/4output.txt", "w") as f:
     eps = [0.01, 0.1, 0.5, 1.0, 5.0, float('inf')]
-    for e in eps:
-        DP_RF_bot = DP_RandomForestClassifier(epsilon=e, n_estimators=400)
-        DP_RF_left = DP_RandomForestClassifier(epsilon=e, n_estimators=400)
-        DP_RF_right = DP_RandomForestClassifier(epsilon=e, n_estimators=400)
+    n_trees = [10, 50, 100, 200, 400]
+    m_depths = [3, 5, 7, 11]
+    m_samples = [0.7, 0.8, 0.9, None]
+
+    for param in params:
+        DP_RF_bot = DP_RandomForestClassifier(**param)
+        DP_RF_left = DP_RandomForestClassifier(**param)
+        DP_RF_right = DP_RandomForestClassifier(**param)
         DP_RF_bot.fit(x_train_bottom, y_train_bottom)
         DP_RF_left.fit(x_train_left, y_train_left)
         DP_RF_right.fit(x_train_right, y_train_right)
@@ -208,10 +236,26 @@ with open("expOutput/4output.txt", "w") as f:
         pred = DP_RF_bot.predict(x_test)
         cm = pd.crosstab(pd.Series(y_test, name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
         auc = roc_auc_score(y_test, pred)
-        print('AUC for the test-set with epsilon: ' + str(e))
-        print(auc)
-        print('Confusion matrix for the test set DP_RF with epsilon: ' + str(e))
+        scores.append({'AUC': auc, 'Params': param})
+
+        # To console
+        print('PARAMS: ' + str(param))
+        print('AUC: ' + str(auc))
         print(cm)
-        print('Confusion matrix for the test set DP_RF with epsilon: ' + str(e), file=f)
-        print(auc, file=f)
+        print('--------------------------------------------------------------------------------------')
+
+        # To file
+        print('PARAMS: ' + str(param), file=f)
+        print('AUC: ' + str(auc), file=f)
         print(cm, file=f)
+        print('--------------------------------------------------------------------------------------', file=f)
+
+    sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
+    # To console
+    print('Best Params: \n')
+    for s in sortedScores:
+        print(s)
+    # To file
+    print('Best Params: \n', file=f)
+    for s in sortedScores:
+        print(s)

@@ -1,19 +1,17 @@
 # Author: Alexander Frid
 # Date: Spring 2023
-import time
+import itertools
+import warnings
 
 import numpy as np
 import pandas as pd
-from diffprivlib.utils import PrivacyLeakWarning
+from diffprivlib.utils import PrivacyLeakWarning, DiffprivlibCompatibilityWarning
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.metrics import roc_auc_score
 from diffprivlib.models import RandomForestClassifier as DP_RandomForestClassifier
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.tree import export_text
-
-import myFL
 
 dataPath = "data/westermo"
 dataBottom = pd.read_csv(dataPath + "/output_bottom.csv")
@@ -140,35 +138,88 @@ x_test = min_max_scaler.transform(x_test)
 # 2: Differential Private Random Forests with epsilon 0.01, 0.1, 0.5, 1.0, 5.0
 
 # 1: Traditinoal Random Forests
+
 with open("expOutput/1output.txt", "w") as f:
     n_trees = [10, 50, 100, 200, 400]
-    for n in n_trees:
-        RF = RandomForestClassifier(n_estimators=n)
+    m_depths = [3, 5, 7, 11, None]
+    m_samples = [0.7, 0.8, 0.9, None]
+
+    params_list = list(itertools.product(n_trees, m_depths, m_samples))
+    params = [{'n_estimators': n_t, 'max_depth': m_d, 'max_samples': m_s} for n_t, m_d, m_s in params_list]
+    scores = []
+
+    for param in params:
+        RF = RandomForestClassifier(**param)
         RF.fit(x_train, y_train)
-        pred = RF.predict(x_test)
-        cm = pd.crosstab(pd.Series(y_test, name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
-        auc = roc_auc_score(y_test, pred)
-        print('AUC for the test-set with '+str(n)+" trees")
-        print(auc)
-        print('Confusion matrix for the test set RF with '+str(n)+" trees")
+
+        pred = RF.predict(x_validate)
+        cm = pd.crosstab(pd.Series(y_validate, name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
+        auc = roc_auc_score(y_validate, pred)
+        scores.append({'AUC': auc, 'Params': param})
+        
+        # To console
+        print('PARAMS: '+str(param))
+        print('AUC: ' + str(auc))
         print(cm)
-        print('Confusion matrix for the test set RF with '+str(n)+" trees", file=f)
-        print(auc, file=f)
+        print('--------------------------------------------------------------------------------------')
+
+        # To file
+        print('PARAMS: ' + str(param), file=f)
+        print('AUC: ' + str(auc), file=f)
         print(cm, file=f)
+        print('--------------------------------------------------------------------------------------', file=f)
+
+    sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
+    # To console
+    print('Best Params: \n')
+    for s in sortedScores:
+        print(s)
+    # To file
+    print('Best Params: \n', file=f)
+    for s in sortedScores:
+        print(s)
 
 # 2: Differential Private Random Forests
+warnings.filterwarnings("ignore", category=PrivacyLeakWarning)
+warnings.filterwarnings("ignore", category=DiffprivlibCompatibilityWarning)
+
 with open("expOutput/2output.txt", "w") as f:
     eps = [0.01, 0.1, 0.5, 1.0, 5.0, float('inf')]
-    for e in eps:
-        DP_RF = DP_RandomForestClassifier(epsilon=e, n_estimators=400)
+    n_trees = [10, 50, 100, 200, 400]
+    m_depths = [3, 5, 7, 11]
+    m_samples = [0.7, 0.8, 0.9, None]
+
+    params_list = list(itertools.product(n_trees, m_depths, m_samples, eps))
+    params = [{'n_estimators': n_t, 'max_depth': m_d, 'max_samples': m_s, 'epsilon': e} for n_t, m_d, m_s, e in params_list]
+    scores = []
+
+    for param in params:
+        DP_RF = DP_RandomForestClassifier(**param)
         DP_RF.fit(x_train, y_train)
-        pred = DP_RF.predict(x_test)
-        cm = pd.crosstab(pd.Series(y_test, name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
-        auc = roc_auc_score(y_test, pred)
-        print('AUC for the test-set with epsilon: ' + str(e))
-        print(auc)
-        print('Confusion matrix for the test set DP_RF with epsilon: ' + str(e))
+
+        pred = DP_RF.predict(x_validate)
+        cm = pd.crosstab(pd.Series(y_validate, name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
+        auc = roc_auc_score(y_validate, pred)
+        scores.append({'AUC': auc, 'Params': param})
+
+        # To console
+        print('PARAMS: ' + str(param))
+        print('AUC: ' + str(auc))
         print(cm)
-        print('Confusion matrix for the test set DP_RF with epsilon: ' + str(e), file=f)
-        print(auc, file=f)
+        print('--------------------------------------------------------------------------------------')
+
+        # To file
+        print('PARAMS: ' + str(param), file=f)
+        print('AUC: ' + str(auc), file=f)
         print(cm, file=f)
+        print('--------------------------------------------------------------------------------------', file=f)
+
+    sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
+    # To console
+    print('Best Params: \n')
+    for s in sortedScores:
+        print(s)
+    # To file
+    print('Best Params: \n', file=f)
+    for s in sortedScores:
+        print(s)
