@@ -96,7 +96,7 @@ dataRight.columns = column_names
 
 # Removing unusable column
 remove_columns = ["startDate", "endDate", "start", "end", "startOffset", "endOffset",
-                  "sAddress", "rAddress", "sMACs", "rMACs", "sIPs", "rIPs", "protocol",
+                  "sAddress", "rAddress", "sMACs", "rMACs", "sIPs", "rIPs",
                   "IT_B_Label", "IT_M_Label", "NST_B_Label"] # Other labels not used
 dataBottom = dataBottom.drop(columns = remove_columns)
 dataLeft = dataLeft.drop(columns = remove_columns)
@@ -109,21 +109,6 @@ dataRight = dataRight.replace([np.inf, -np.inf], -1)
 dataBottom = dataBottom.replace(np.nan, -1)
 dataLeft = dataLeft.replace(np.nan, -1)
 dataRight = dataRight.replace(np.nan, -1)
-
-# Encoding protocol column
-onehot_encoder = OneHotEncoder(sparse_output=False, categories='auto', handle_unknown='ignore')
-
-feature = onehot_encoder.fit_transform(dataBottom['protocol'].values.reshape(-1, 1))
-dataBottom = dataBottom.drop(columns=['protocol']).values
-dataBottom = np.concatenate((feature, dataBottom), axis=1)
-
-feature = onehot_encoder.transform(dataLeft['protocol'].values.reshape(-1, 1))
-dataLeft = dataLeft.drop(columns=['protocol']).values
-dataLeft = np.concatenate((feature, dataLeft), axis=1)
-
-feature = onehot_encoder.transform(dataRight['protocol'].values.reshape(-1, 1))
-dataRight = dataRight.drop(columns=['protocol']).values
-dataRight = np.concatenate((feature, dataRight), axis=1)
 
 # Extracting label column
 boty = dataBottom["NST_M_Label"]
@@ -138,29 +123,30 @@ boty = np.where(boty == "Normal", 0, 1)
 lefty = np.where(lefty == "Normal", 0, 1)
 righty = np.where(righty == "Normal", 0, 1)
 
+# Encoding protocol column
+onehot_encoder = OneHotEncoder(sparse_output=False, categories='auto', handle_unknown='ignore')
+feature = onehot_encoder.fit_transform(botx['protocol'].values.reshape(-1, 1))
+botxn = botx.drop(columns=['protocol']).values
+botxn = np.concatenate((feature, botxn), axis=1)
+
+feature = onehot_encoder.transform(leftx['protocol'].values.reshape(-1, 1))
+leftxn = leftx.drop(columns=['protocol']).values
+leftxn = np.concatenate((feature, leftxn), axis=1)
+
+feature = onehot_encoder.transform(rightx['protocol'].values.reshape(-1, 1))
+rightxn = rightx.drop(columns=['protocol']).values
+rightxn = np.concatenate((feature, rightxn), axis=1)
+
 # Splitting the dataset
 # Train =  70%, Validate = 10%, Test = 20%
-x_train_bottom, x_rest_bottom, y_train_bottom, y_rest_bottom = train_test_split(botx, boty, test_size = 0.3, stratify=boty, random_state=42)
+x_train_bottom, x_rest_bottom, y_train_bottom, y_rest_bottom = train_test_split(botxn, boty, test_size = 0.3, stratify=boty, random_state=42)
 x_validate_bottom, x_test_bottom, y_validate_bottom, y_test_bottom = train_test_split(x_rest_bottom, y_rest_bottom, test_size = 0.67, stratify=y_rest_bottom, random_state=42)
 
-x_train_left, x_rest_left, y_train_left, y_rest_left = train_test_split(leftx, lefty, test_size = 0.3, stratify=lefty, random_state=42)
+x_train_left, x_rest_left, y_train_left, y_rest_left = train_test_split(leftxn, lefty, test_size = 0.3, stratify=lefty, random_state=42)
 x_validate_left, x_test_left, y_validate_left, y_test_left = train_test_split(x_rest_left, y_rest_left, test_size = 0.67, stratify=y_rest_left, random_state=42)
 
-x_train_right, x_rest_right, y_train_right, y_rest_right = train_test_split(rightx, righty, test_size = 0.3, stratify=righty, random_state=42)
+x_train_right, x_rest_right, y_train_right, y_rest_right = train_test_split(rightxn, righty, test_size = 0.3, stratify=righty, random_state=42)
 x_validate_right, x_test_right, y_validate_right, y_test_right = train_test_split(x_rest_right, y_rest_right, test_size = 0.67, stratify=y_rest_right, random_state=42)
-
-# Dropping redundant columns
-#col_names = np.array(list(x_train_left))
-#col_to_drop = []
-#for i in col_names:
-#    size = x_train_left.groupby([i]).size()
-#    if(len(size.unique()) == 1):
-#        col_to_drop.append(i)
-#print(col_to_drop)
-
-#x_train = x_train.drop(col_to_drop, axis = 1)
-#x_validate = x_validate.drop(col_to_drop, axis = 1)
-#x_test = x_test.drop(col_to_drop, axis = 1)
 
 # Normalizing in order to prevent "large value"-features to have greater importance.
 min_max_scaler = MinMaxScaler().fit(x_train_bottom)
