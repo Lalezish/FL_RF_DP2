@@ -190,7 +190,7 @@ clients = {
 # 4: Differentially Private Random Forests with Federated Learning
 # 5: Client-wise Traditional Random Forests
 # 6: Client-wise Differentially Private Random Forests
-expToRun = [False, False, True, False, True, True]
+expToRun = [True, True, True, True, True, True]
 
 # 1: Traditinoal Random Forests
 if(expToRun[0]):
@@ -368,7 +368,7 @@ if(expToRun[3]):
 
             # To file
             print('--------------------------------------------------------------------------------------', file=f)
-            print('EPS: ' + str(RF.epsilon))
+            print('EPS: ' + str(RF.epsilon), file=f)
             print('PARAMS: ' + str(RF.get_params()), file=f)
             print('complete_test_AUC: ' + str(finalAUC), file=f)
             print('COMPLETE_TEST_CM: ', file=f)
