@@ -12,7 +12,7 @@ from sklearn.metrics import classification_report, roc_auc_score
 from diffprivlib.models import RandomForestClassifier as DP_RandomForestClassifier
 
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, LabelEncoder
 from sklearn.tree import export_text
 
 import myFL
@@ -124,18 +124,21 @@ lefty = np.where(lefty == "Normal", 0, 1)
 righty = np.where(righty == "Normal", 0, 1)
 
 # Encoding protocol column
-onehot_encoder = OneHotEncoder(sparse_output=False, categories='auto', handle_unknown='ignore')
-feature = onehot_encoder.fit_transform(botx['protocol'].values.reshape(-1, 1))
-botxn = botx.drop(columns=['protocol']).values
-botxn = np.concatenate((feature, botxn), axis=1)
 
-feature = onehot_encoder.transform(leftx['protocol'].values.reshape(-1, 1))
-leftxn = leftx.drop(columns=['protocol']).values
-leftxn = np.concatenate((feature, leftxn), axis=1)
+# Encoding protocol column
+label_encoder = LabelEncoder()
+protocols = pd.concat([leftx['protocol'], botx['protocol'], rightx['protocol']])
+label_encoder.fit(protocols)
 
-feature = onehot_encoder.transform(rightx['protocol'].values.reshape(-1, 1))
-rightxn = rightx.drop(columns=['protocol']).values
-rightxn = np.concatenate((feature, rightxn), axis=1)
+botx['protocol'] = label_encoder.transform(botx['protocol'])
+botxn = botx.values
+
+leftx['protocol'] = label_encoder.transform(leftx['protocol'])
+leftxn = leftx.values
+
+rightx['protocol'] = label_encoder.transform(rightx['protocol'])
+rightxn = rightx.values
+
 
 # Splitting the dataset
 # Train =  70%, Validate = 10%, Test = 20%
@@ -175,119 +178,95 @@ y_train = np.concatenate([y_train_bottom, y_train_left, y_train_right])
 x_validate = np.concatenate([x_validate_bottom, x_validate_left, x_validate_right])
 y_validate = np.concatenate([y_validate_bottom, y_validate_left, y_validate_right])
 
+expToRun = [False, False, False, False, False, True]
+
 ### Non-FL experiments
 # 1: Traditional Random Forests
 # 2: Differential Private Random Forests
 
 # 1: Traditinoal Random Forests
-with open("expOutput/1output.txt", "w") as f:
-    n_trees = [10, 50, 100, 200, 400]
-    m_depths = [3, 5, 7, 11, None]
-    m_samples = [0.7, 0.8, 0.9, None]
+if(expToRun[0]):
+    print("Running exp 1!")
+    with open("expOutput/1output.txt", "w") as f:
+        print("EXPERIMENT 1: Traditional Random Forests. All data is merged and a RF is trained and tested on the complete data.", file=f)
+        n_trees = [10, 50, 100, 200, 400]
+        m_depths = [3, 5, 7, 11, None]
+        m_samples = [0.7, 0.8, 0.9, None]
 
-    params_list = list(itertools.product(n_trees, m_depths, m_samples))
-    params = [{'n_estimators': n_t, 'max_depth': m_d, 'max_samples': m_s} for n_t, m_d, m_s in params_list]
-    scores = []
+        params_list = list(itertools.product(n_trees, m_depths, m_samples))
+        params = [{'n_estimators': n_t, 'max_depth': m_d, 'max_samples': m_s} for n_t, m_d, m_s in params_list]
+        scores = []
 
-    for param in params:
-        RF = RandomForestClassifier(**param)
-        RF.fit(x_train, y_train)
+        for param in params:
+            RF = RandomForestClassifier(**param)
+            RF.fit(x_train, y_train)
 
-        pred = RF.predict(x_validate)
-        cm = pd.crosstab(pd.Series(y_validate, name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
-        auc = roc_auc_score(y_validate, pred)
-        scores.append({'AUC': auc, 'Params': param, "Model" : RF})
-        # To console
-        print('PARAMS: ' + str(param))
-        print('AUC: ' + str(auc))
-        print(cm)
-        print('--------------------------------------------------------------------------------------')
+            pred = RF.predict(x_validate)
+            cm = pd.crosstab(pd.Series(y_validate, name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
+            auc = roc_auc_score(y_validate, pred)
+            scores.append({'AUC': auc, 'Params': param, "Model" : RF})
+
+        sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
+        bestRF = sortedScores[0]["Model"]
+        # Final prediction
+        finalPred = bestRF.predict(x_test)
+        finalCM = pd.crosstab(pd.Series(y_test, name="Actual"), pd.Series(finalPred, name="Predicted"), normalize="all")
+        finalAUC = roc_auc_score(y_test, finalPred)
 
         # To file
-        print('PARAMS: ' + str(param), file=f)
-        print('AUC: ' + str(auc), file=f)
-        print(cm, file=f)
         print('--------------------------------------------------------------------------------------', file=f)
-
-    sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
-    bestRF = sortedScores[0]["Model"]
-    # Final prediction
-    finalPred = bestRF.predict(x_test)
-    finalCM = pd.crosstab(pd.Series(y_test, name="Actual"), pd.Series(finalPred, name="Predicted"), normalize="all")
-    finalAUC = roc_auc_score(y_test, finalPred)
-    # To console
-    print('-------------------------------------FINAL MODEL--------------------------------------')
-
-    print('AUC: ' + str(finalAUC))
-    print(finalCM)
-    print('--------------------------------------------------------------------------------------')
-
-    # To file
-    print('-------------------------------------FINAL MODEL--------------------------------------', file=f)
-    print('AUC: ' + str(finalAUC), file=f)
-    print(finalCM, file=f)
-    print('--------------------------------------------------------------------------------------', file=f)
+        print('PARAMS: ' + str(bestRF.get_params()), file=f)
+        print('complete_test_AUC: ' + str(finalAUC), file=f)
+        print('COMPLETE_TEST_CM: ', file=f)
+        print(finalCM, file=f)
+        print('--------------------------------------------------------------------------------------', file=f)
 
 
 
 # 2: Differential Private Random Forests
 warnings.filterwarnings("ignore", category=PrivacyLeakWarning)
 warnings.filterwarnings("ignore", category=DiffprivlibCompatibilityWarning)
+if(expToRun[1]):
+    print("Running exp 2!")
+    with open("expOutput/2output.txt", "w") as f:
+        print("EXPERIMENT 2: Differential Private Random Forests. All data is merged and a DP_RF is trained and tested on the complete data.", file=f)
+        eps = [0.01, 0.1, 0.5, 1.0, 5.0, float('inf')]
+        n_trees = [10, 50, 100, 200, 400]
+        m_depths = [3, 5, 7, 11]
+        m_samples = [0.7, 0.8, 0.9, None]
 
-with open("expOutput/2output.txt", "w") as f:
-    eps = [0.01, 0.1, 0.5, 1.0, 5.0, float('inf')]
-    n_trees = [10, 50, 100, 200, 400]
-    m_depths = [3, 5, 7, 11]
-    m_samples = [0.7, 0.8, 0.9, None]
+        params_list = list(itertools.product(n_trees, m_depths, m_samples))
+        params = [{'n_estimators': n_t, 'max_depth': m_d, 'max_samples': m_s} for n_t, m_d, m_s in params_list]
 
-    params_list = list(itertools.product(n_trees, m_depths, m_samples))
-    params = [{'n_estimators': n_t, 'max_depth': m_d, 'max_samples': m_s} for n_t, m_d, m_s in params_list]
+        bestModels = []
 
-    bestModels = []
+        for e in eps:
+            scores = []
+            for param in params:
+                DP_RF = DP_RandomForestClassifier(epsilon=e, **param)
+                DP_RF.fit(x_train, y_train)
 
-    for e in eps:
-        scores = []
-        for param in params:
-            DP_RF = DP_RandomForestClassifier(epsilon=e, **param)
-            DP_RF.fit(x_train, y_train)
+                pred = DP_RF.predict(x_validate)
+                cm = pd.crosstab(pd.Series(y_validate, name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
+                auc = roc_auc_score(y_validate, pred)
+                scores.append({'AUC': auc, 'Params': param, "Model" : DP_RF})
 
-            pred = DP_RF.predict(x_validate)
-            cm = pd.crosstab(pd.Series(y_validate, name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
-            auc = roc_auc_score(y_validate, pred)
-            scores.append({'AUC': auc, 'Params': param, "Model" : DP_RF})
-
-            # To console
-            print('PARAMS: ' + str(param))
-            print('AUC: ' + str(auc))
-            print(cm)
-            print('--------------------------------------------------------------------------------------')
+            sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
+            bestModels.append(sortedScores[0]["Model"])
+        # Final predictions
+        for RF in bestModels:
+            finalPred = RF.predict(x_test)
+            finalCM = pd.crosstab(pd.Series(y_test, name="Actual"), pd.Series(finalPred, name="Predicted"), normalize="all")
+            finalAUC = roc_auc_score(y_test, finalPred)
 
             # To file
-            print('PARAMS: ' + str(param), file=f)
-            print('AUC: ' + str(auc), file=f)
-            print(cm, file=f)
             print('--------------------------------------------------------------------------------------', file=f)
-
-        sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
-        bestModels.append(sortedScores[0]["Model"])
-    # Final predictions
-    for RF in bestModels:
-        finalPred = RF.predict(x_test)
-        finalCM = pd.crosstab(pd.Series(y_test, name="Actual"), pd.Series(finalPred, name="Predicted"), normalize="all")
-        finalAUC = roc_auc_score(y_test, finalPred)
-        # To console
-        print('-------------------------------------FINAL MODEL--------------------------------------')
-        print('Params: ' + str(RF.get_params()))
-        print('AUC: ' + str(finalAUC))
-        print(finalCM)
-        print('--------------------------------------------------------------------------------------')
-
-        # To file
-        print('-------------------------------------FINAL MODEL--------------------------------------', file=f)
-
-        print('AUC: ' + str(finalAUC), file=f)
-        print(finalCM, file=f)
-        print('--------------------------------------------------------------------------------------', file=f)
+            print('EPS: ' + str(RF.epsilon))
+            print('PARAMS: ' + str(RF.get_params()), file=f)
+            print('complete_test_AUC: ' + str(finalAUC), file=f)
+            print('COMPLETE_TEST_CM: ', file=f)
+            print(finalCM, file=f)
+            print('--------------------------------------------------------------------------------------', file=f)
 
 ### FL experiments
 
@@ -295,122 +274,187 @@ with open("expOutput/2output.txt", "w") as f:
 # 4: Federated Differential Private Random Forests
 
 clients = {
-    "left": {"train": {"x": x_train_left, "y": y_train_left}, "validate": {"x": x_validate_left, "y": y_validate_left}},
-    "right": {"train": {"x": x_train_right, "y": y_train_right}, "validate": {"x": x_validate_right, "y": y_validate_right}},
-    "bottom": {"train": {"x": x_train_bottom, "y": y_train_bottom}, "validate": {"x": x_validate_bottom, "y": y_validate_bottom}},
+    "left": {"train": {"x": x_train_left, "y": y_train_left}, "validate": {"x": x_validate_left, "y": y_validate_left}, "test": {"x": x_test_left, "y": y_test_left}},
+    "right": {"train": {"x": x_train_right, "y": y_train_right}, "validate": {"x": x_validate_right, "y": y_validate_right}, "test": {"x": x_test_right, "y": y_test_right}},
+    "bottom": {"train": {"x": x_train_bottom, "y": y_train_bottom}, "validate": {"x": x_validate_bottom, "y": y_validate_bottom}, "test": {"x": x_test_bottom, "y": y_test_bottom}},
 }
 
 # 3: Federated traditional Random Forests
-with open("expOutput/3output.txt", "w") as f:
-    n_trees = [10, 50, 100, 200, 400]
-    m_depths = [3, 5, 7, 11, None]
-    m_samples = [0.7, 0.8, 0.9, None]
+if(expToRun[2]):
+    print("Running exp 3!")
+    with open("expOutput/3output.txt", "w") as f:
+        print("EXPERIMENT 3: Federated traditional Random Forests. Each client trains on own data is then merged and asked to predict on complete test-set", file=f)
+        n_trees = [10, 50, 100, 200, 400]
+        m_depths = [3, 5, 7, 11, None]
+        m_samples = [0.7, 0.8, 0.9, None]
 
-    params_list = list(itertools.product(n_trees, m_depths, m_samples))
-    params = [{'n_estimators': n_t, 'max_depth': m_d, 'max_samples': m_s} for n_t, m_d, m_s in params_list]
-    bestRF = [] # The best RF from each client
+        params_list = list(itertools.product(n_trees, m_depths, m_samples))
+        params = [{'n_estimators': n_t, 'max_depth': m_d, 'max_samples': m_s} for n_t, m_d, m_s in params_list]
+        bestRF = [] # The best RF from each client
 
-    for client in clients:
-        scores = []
-        for param in params:
-            RF = RandomForestClassifier(**param)
-            RF.fit(clients[client]["train"]["x"], clients[client]["train"]["y"])
-
-            pred = RF.predict(clients[client]["validate"]["x"])
-            cm = pd.crosstab(pd.Series(clients[client]["validate"]["y"], name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
-            auc = roc_auc_score(clients[client]["validate"]["y"], pred)
-            scores.append({'AUC': auc, 'Params': param, "Model" : RF})
-
-            # To console
-            print('PARAMS: ' + str(param))
-            print('AUC: ' + str(auc))
-            print(cm)
-            print('--------------------------------------------------------------------------------------')
-
-            # To file
-            print('PARAMS: ' + str(param), file=f)
-            print('AUC: ' + str(auc), file=f)
-            print(cm, file=f)
-            print('--------------------------------------------------------------------------------------', file=f)
-
-        sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
-        bestRF.append(sortedScores[0]["Model"])
-    # Merging
-    FLRF = myFL.FL_Forest()
-    mergedForest = FLRF.mergeALL(bestRF)
-    # Final prediction
-    finalPred = mergedForest.predict(x_test)
-    finalCM = pd.crosstab(pd.Series(y_test, name="Actual"), pd.Series(finalPred, name="Predicted"), normalize="all")
-    finalAUC = roc_auc_score(y_test, finalPred)
-    # To console
-    print('-------------------------------------FINAL MODEL--------------------------------------')
-
-    print('AUC: ' + str(finalAUC))
-    print(finalCM)
-    print('--------------------------------------------------------------------------------------')
-
-    # To file
-    print('-------------------------------------FINAL MODEL--------------------------------------', file=f)
-    print('AUC: ' + str(finalAUC), file=f)
-    print(finalCM, file=f)
-    print('--------------------------------------------------------------------------------------', file=f)
-
-# 4: Federated Differential Private Random Forests
-with open("expOutput/4output.txt", "w") as f:
-    eps = [0.01, 0.1, 0.5, 1.0, 5.0, float('inf')]
-    n_trees = [10, 50, 100, 200, 400]
-    m_depths = [3, 5, 7, 11]
-    m_samples = [0.7, 0.8, 0.9, None]
-
-    params_list = list(itertools.product(n_trees, m_depths, m_samples))
-    params = [{'n_estimators': n_t, 'max_depth': m_d, 'max_samples': m_s} for n_t, m_d, m_s in params_list]
-    bestModels = []
-    for e in eps:
-        bestRF = []  # The best RF from each client
         for client in clients:
             scores = []
             for param in params:
-                RF = DP_RandomForestClassifier(epsilon = e, **param)
+                RF = RandomForestClassifier(**param)
                 RF.fit(clients[client]["train"]["x"], clients[client]["train"]["y"])
 
                 pred = RF.predict(clients[client]["validate"]["x"])
                 cm = pd.crosstab(pd.Series(clients[client]["validate"]["y"], name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
                 auc = roc_auc_score(clients[client]["validate"]["y"], pred)
-                scores.append({'AUC': auc, 'Params': param, "Model": RF})
-
-                # To console
-                print('PARAMS: ' + str(param))
-                print('AUC: ' + str(auc))
-                print(cm)
-                print('--------------------------------------------------------------------------------------')
-
-                # To file
-                print('PARAMS: ' + str(param), file=f)
-                print('AUC: ' + str(auc), file=f)
-                print(cm, file=f)
-                print('--------------------------------------------------------------------------------------', file=f)
+                scores.append({'AUC': auc, 'Params': param, "Model" : RF})
 
             sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
             bestRF.append(sortedScores[0]["Model"])
         # Merging
-        FLRF = myFL.FL_DP_Forest()
+        FLRF = myFL.FL_Forest()
         mergedForest = FLRF.mergeALL(bestRF)
-        bestModels.append(mergedForest)
-    # Final predictions
-    for RF in bestModels:
-        finalPred = RF.predict(x_test)
+        # Final prediction
+        finalPred = mergedForest.predict(x_test)
         finalCM = pd.crosstab(pd.Series(y_test, name="Actual"), pd.Series(finalPred, name="Predicted"), normalize="all")
         finalAUC = roc_auc_score(y_test, finalPred)
-        # To console
-        print('-------------------------------------FINAL MODEL--------------------------------------')
-        print('EPS: ' + str(RF.epsilon))
-        print('AUC: ' + str(finalAUC))
-        print(finalCM)
-        print('--------------------------------------------------------------------------------------')
 
         # To file
-        print('-------------------------------------FINAL MODEL--------------------------------------', file=f)
-
-        print('AUC: ' + str(finalAUC), file=f)
+        print('--------------------------------------------------------------------------------------', file=f)
+        print('PARAMS: ' + str(mergedForest.get_params()), file=f)
+        print('complete_test_AUC: ' + str(finalAUC), file=f)
+        print('COMPLETE_TEST_CM: ', file=f)
         print(finalCM, file=f)
         print('--------------------------------------------------------------------------------------', file=f)
+
+# 4: Federated Differential Private Random Forests
+if(expToRun[3]):
+    print("Running exp 4!")
+    with open("expOutput/4output.txt", "w") as f:
+        print("EXPERIMENT 4: Federated Differential Private Random Forests. Each client trains on own data is then merged and asked to predict on complete test-set", file=f)
+        eps = [0.01, 0.1, 0.5, 1.0, 5.0, float('inf')]
+        n_trees = [10, 50, 100, 200, 400]
+        m_depths = [3, 5, 7, 11]
+        m_samples = [0.7, 0.8, 0.9, None]
+
+        params_list = list(itertools.product(n_trees, m_depths, m_samples))
+        params = [{'n_estimators': n_t, 'max_depth': m_d, 'max_samples': m_s} for n_t, m_d, m_s in params_list]
+        bestModels = []
+        for e in eps:
+            bestRF = []  # The best RF from each client
+            for client in clients:
+                scores = []
+                for param in params:
+                    RF = DP_RandomForestClassifier(epsilon = e, **param)
+                    RF.fit(clients[client]["train"]["x"], clients[client]["train"]["y"])
+
+                    pred = RF.predict(clients[client]["validate"]["x"])
+                    cm = pd.crosstab(pd.Series(clients[client]["validate"]["y"], name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
+                    auc = roc_auc_score(clients[client]["validate"]["y"], pred)
+                    scores.append({'AUC': auc, 'Params': param, "Model": RF})
+
+                sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
+                bestRF.append(sortedScores[0]["Model"])
+            # Merging
+            FLRF = myFL.FL_DP_Forest()
+            mergedForest = FLRF.mergeALL(bestRF)
+            bestModels.append(mergedForest)
+        # Final predictions
+        for RF in bestModels:
+            finalPred = RF.predict(x_test)
+            finalCM = pd.crosstab(pd.Series(y_test, name="Actual"), pd.Series(finalPred, name="Predicted"), normalize="all")
+            finalAUC = roc_auc_score(y_test, finalPred)
+
+            # To file
+            print('--------------------------------------------------------------------------------------', file=f)
+            print('EPS: ' + str(RF.epsilon))
+            print('PARAMS: ' + str(RF.get_params()), file=f)
+            print('complete_test_AUC: ' + str(finalAUC), file=f)
+            print('COMPLETE_TEST_CM: ', file=f)
+            print(finalCM, file=f)
+            print('--------------------------------------------------------------------------------------', file=f)
+
+# 5: Traditinoal Random Forests client-wise
+if(expToRun[4]):
+    print("Running exp 5!")
+    with open("expOutput/5output.txt", "w") as f:
+        print("EXPERIMENT 5: Client-wise training and evaluation on client- and complete test set", file=f)
+        n_trees = [10, 50, 100, 200, 400]
+        m_depths = [3, 5, 7, 11, None]
+        m_samples = [0.7, 0.8, 0.9, None]
+
+        params_list = list(itertools.product(n_trees, m_depths, m_samples))
+        params = [{'n_estimators': n_t, 'max_depth': m_d, 'max_samples': m_s} for n_t, m_d, m_s in params_list]
+
+        for client in clients:
+            scores = []
+            for param in params:
+                RF = RandomForestClassifier(**param)
+                RF.fit(clients[client]["train"]["x"], clients[client]["train"]["y"])
+
+                pred = RF.predict(clients[client]["validate"]["x"])
+                cm = pd.crosstab(pd.Series(clients[client]["validate"]["y"], name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
+                auc = roc_auc_score(clients[client]["validate"]["y"], pred)
+                scores.append({'AUC': auc, 'Params': param, "Model" : RF})
+
+            sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
+            bestRF = sortedScores[0]["Model"] # Best model of client
+            # Prediction on client_test_set
+            client_testPred = bestRF.predict(clients[client]["test"]["x"])
+            complete_testPred = bestRF.predict(x_test)
+            client_test_AUC = roc_auc_score(clients[client]["test"]["y"], client_testPred)
+            complete_test_AUC = roc_auc_score(y_test, complete_testPred)
+            client_test_CM = pd.crosstab(pd.Series(clients[client]["test"]["y"], name="Actual"), pd.Series(client_testPred, name="Predicted"),normalize="all")
+            complete_test_CM = pd.crosstab(pd.Series(y_test, name="Actual"), pd.Series(complete_testPred, name="Predicted"),normalize="all")
+
+            # To file
+            print('--------------------------------------------------------------------------------------', file=f)
+            print('CLIENT: ' + str(client), file=f)
+            print('PARAMS: '+ str(bestRF.get_params()), file=f)
+            print('client_test_AUC: ' + str(client_test_AUC), file=f)
+            print('complete_test_AUC: ' + str(complete_test_AUC), file=f)
+            print('CLIENT_TEST_CM: ', file=f)
+            print(client_test_CM, file=f)
+            print('\nCOMPLETE_TEST_CM: ', file=f)
+            print(complete_test_CM, file=f)
+            print('--------------------------------------------------------------------------------------', file=f)
+# 6: Differential Private Random Forests client-wise
+if(expToRun[5]):
+    print("Running exp 6!")
+    with open("expOutput/6output.txt", "w") as f:
+        print("EXPERIMENT 6: Client-wise DP training and evaluation on client- and complete test set", file=f)
+        eps = [0.01, 0.1, 0.5, 1.0, 5.0, float('inf')]
+        n_trees = [10, 50, 100, 200, 400]
+        m_depths = [3, 5, 7, 11]
+        m_samples = [0.7, 0.8, 0.9, None]
+
+        params_list = list(itertools.product(n_trees, m_depths, m_samples))
+        params = [{'n_estimators': n_t, 'max_depth': m_d, 'max_samples': m_s} for n_t, m_d, m_s in params_list]
+        for e in eps:
+            for client in clients:
+                scores = []
+                for param in params:
+                    RF = DP_RandomForestClassifier(epsilon = e, **param)
+                    RF.fit(clients[client]["train"]["x"], clients[client]["train"]["y"])
+
+                    pred = RF.predict(clients[client]["validate"]["x"])
+                    cm = pd.crosstab(pd.Series(clients[client]["validate"]["y"], name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
+                    auc = roc_auc_score(clients[client]["validate"]["y"], pred)
+                    scores.append({'AUC': auc, 'Params': param, "Model" : RF})
+
+                sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
+                bestRF = sortedScores[0]["Model"] # Best model of client
+                # Prediction on client_test_set
+                client_testPred = bestRF.predict(clients[client]["test"]["x"])
+                complete_testPred = bestRF.predict(x_test)
+                client_test_AUC = roc_auc_score(clients[client]["test"]["y"], client_testPred)
+                complete_test_AUC = roc_auc_score(y_test, complete_testPred)
+                client_test_CM = pd.crosstab(pd.Series(clients[client]["test"]["y"], name="Actual"), pd.Series(client_testPred, name="Predicted"),normalize="all")
+                complete_test_CM = pd.crosstab(pd.Series(y_test, name="Actual"), pd.Series(complete_testPred, name="Predicted"),normalize="all")
+
+                # To file
+                print('--------------------------------------------------------------------------------------', file=f)
+                print('CLIENT: ' + str(client), file=f)
+                print('EPS: ' + str(RF.epsilon), file=f)
+                print('PARAMS: '+ str(bestRF.get_params()), file=f)
+                print('client_test_AUC: ' + str(client_test_AUC), file=f)
+                print('complete_test_AUC: ' + str(complete_test_AUC), file=f)
+                print('CLIENT_TEST_CM: ', file=f)
+                print(client_test_CM, file=f)
+                print('\nCOMPLETE_TEST_CM: ', file=f)
+                print(complete_test_CM, file=f)
+                print('--------------------------------------------------------------------------------------', file=f)
