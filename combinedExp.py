@@ -303,6 +303,10 @@ if(expToRun[2]):
 
             sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
             bestRF.append(sortedScores[0]["Model"])
+            print('--------------------------------------------------------------------------------------', file=f)
+            print('client: '+client, file=f)
+            print('PARAMS: '+sortedScores[0]["Model"].get_params(), file=f)
+            print('--------------------------------------------------------------------------------------', file=f)
         # Merging
         FLRF = myFL.FL_Forest()
         mergedForest = FLRF.mergeALL(bestRF)
@@ -348,6 +352,10 @@ if(expToRun[3]):
 
                 sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
                 bestRF.append(sortedScores[0]["Model"])
+                print('--------------------------------------------------------------------------------------', file=f)
+                print('client: ' + client, file=f)
+                print('PARAMS: ' + sortedScores[0]["Model"].get_params(), file=f)
+                print('--------------------------------------------------------------------------------------', file=f)
             # Merging
             FLRF = myFL.FL_DP_Forest()
             mergedForest = FLRF.mergeALL(bestRF)
