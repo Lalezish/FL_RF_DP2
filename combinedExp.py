@@ -183,13 +183,14 @@ clients = {
     "right": {"train": {"x": x_train_right, "y": y_train_right}, "validate": {"x": x_validate_right, "y": y_validate_right}, "test": {"x": x_test_right, "y": y_test_right}},
     "bottom": {"train": {"x": x_train_bottom, "y": y_train_bottom}, "validate": {"x": x_validate_bottom, "y": y_validate_bottom}, "test": {"x": x_test_bottom, "y": y_test_bottom}},
 }
+
 # 1: Traditional Random Forests
 # 2: Differentially private Random Forests
 # 3: Traditional Random Forests with Federated Learning
 # 4: Differentially Private Random Forests with Federated Learning
 # 5: Client-wise Traditional Random Forests
 # 6: Client-wise Differentially Private Random Forests
-expToRun = [False, False, False, True, False, True]
+expToRun = [False, False, True, False, True, True]
 
 # 1: Traditinoal Random Forests
 if(expToRun[0]):
@@ -248,6 +249,7 @@ if(expToRun[1]):
         bestModels = []
 
         for e in eps:
+            print("Using eps = " + str(e))
             scores = []
             for param in params:
                 DP_RF = DP_RandomForestClassifier(epsilon=e, **param)
@@ -289,7 +291,6 @@ if(expToRun[2]):
         bestRF = [] # The best RF from each client
 
         for client in clients:
-            print("Using eps = " + str(e))
             scores = []
             for param in params:
                 RF = RandomForestClassifier(**param)
