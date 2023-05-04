@@ -178,11 +178,18 @@ y_train = np.concatenate([y_train_bottom, y_train_left, y_train_right])
 x_validate = np.concatenate([x_validate_bottom, x_validate_left, x_validate_right])
 y_validate = np.concatenate([y_validate_bottom, y_validate_left, y_validate_right])
 
-expToRun = [False, False, False, False, False, True]
-
-### Non-FL experiments
+clients = {
+    "left": {"train": {"x": x_train_left, "y": y_train_left}, "validate": {"x": x_validate_left, "y": y_validate_left}, "test": {"x": x_test_left, "y": y_test_left}},
+    "right": {"train": {"x": x_train_right, "y": y_train_right}, "validate": {"x": x_validate_right, "y": y_validate_right}, "test": {"x": x_test_right, "y": y_test_right}},
+    "bottom": {"train": {"x": x_train_bottom, "y": y_train_bottom}, "validate": {"x": x_validate_bottom, "y": y_validate_bottom}, "test": {"x": x_test_bottom, "y": y_test_bottom}},
+}
 # 1: Traditional Random Forests
-# 2: Differential Private Random Forests
+# 2: Differentially private Random Forests
+# 3: Traditional Random Forests with Federated Learning
+# 4: Differentially Private Random Forests with Federated Learning
+# 5: Client-wise Traditional Random Forests
+# 6: Client-wise Differentially Private Random Forests
+expToRun = [False, False, False, True, False, True]
 
 # 1: Traditinoal Random Forests
 if(expToRun[0]):
@@ -261,23 +268,12 @@ if(expToRun[1]):
 
             # To file
             print('--------------------------------------------------------------------------------------', file=f)
-            print('EPS: ' + str(RF.epsilon))
+            print('EPS: ' + str(RF.epsilon), file=f)
             print('PARAMS: ' + str(RF.get_params()), file=f)
             print('complete_test_AUC: ' + str(finalAUC), file=f)
             print('COMPLETE_TEST_CM: ', file=f)
             print(finalCM, file=f)
             print('--------------------------------------------------------------------------------------', file=f)
-
-### FL experiments
-
-# 3: Federated traditional Random Forests
-# 4: Federated Differential Private Random Forests
-
-clients = {
-    "left": {"train": {"x": x_train_left, "y": y_train_left}, "validate": {"x": x_validate_left, "y": y_validate_left}, "test": {"x": x_test_left, "y": y_test_left}},
-    "right": {"train": {"x": x_train_right, "y": y_train_right}, "validate": {"x": x_validate_right, "y": y_validate_right}, "test": {"x": x_test_right, "y": y_test_right}},
-    "bottom": {"train": {"x": x_train_bottom, "y": y_train_bottom}, "validate": {"x": x_validate_bottom, "y": y_validate_bottom}, "test": {"x": x_test_bottom, "y": y_test_bottom}},
-}
 
 # 3: Federated traditional Random Forests
 if(expToRun[2]):
@@ -293,6 +289,7 @@ if(expToRun[2]):
         bestRF = [] # The best RF from each client
 
         for client in clients:
+            print("Using eps = " + str(e))
             scores = []
             for param in params:
                 RF = RandomForestClassifier(**param)
@@ -335,6 +332,7 @@ if(expToRun[3]):
         params = [{'n_estimators': n_t, 'max_depth': m_d, 'max_samples': m_s} for n_t, m_d, m_s in params_list]
         bestModels = []
         for e in eps:
+            print("Using eps = " + str(e))
             bestRF = []  # The best RF from each client
             for client in clients:
                 scores = []
@@ -425,6 +423,7 @@ if(expToRun[5]):
         params_list = list(itertools.product(n_trees, m_depths, m_samples))
         params = [{'n_estimators': n_t, 'max_depth': m_d, 'max_samples': m_s} for n_t, m_d, m_s in params_list]
         for e in eps:
+            print("Using eps = "+str(e))
             for client in clients:
                 scores = []
                 for param in params:
