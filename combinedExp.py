@@ -303,9 +303,9 @@ if(expToRun[2]):
 
             sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
             bestRF.append(sortedScores[0]["Model"])
-            print('--------------------------------------------------------------------------------------', file=f)
+            print('START---------------------------------------------------------------------------------', file=f)
             print('client: '+client, file=f)
-            print('PARAMS: '+sortedScores[0]["Model"].get_params(), file=f)
+            print('PARAMS: '+str(sortedScores[0]["Model"].get_params()), file=f)
             print('--------------------------------------------------------------------------------------', file=f)
         # Merging
         FLRF = myFL.FL_Forest()
@@ -321,7 +321,7 @@ if(expToRun[2]):
         print('complete_test_AUC: ' + str(finalAUC), file=f)
         print('COMPLETE_TEST_CM: ', file=f)
         print(finalCM, file=f)
-        print('--------------------------------------------------------------------------------------', file=f)
+        print('END-----------------------------------------------------------------------------------', file=f)
 
 # 4: Federated Differential Private Random Forests
 if(expToRun[3]):
@@ -352,9 +352,9 @@ if(expToRun[3]):
 
                 sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
                 bestRF.append(sortedScores[0]["Model"])
-                print('--------------------------------------------------------------------------------------', file=f)
+                print('START---------------------------------------------------------------------------------', file=f)
                 print('client: ' + client, file=f)
-                print('PARAMS: ' + sortedScores[0]["Model"].get_params(), file=f)
+                print('PARAMS: ' + str(sortedScores[0]["Model"].get_params()), file=f)
                 print('--------------------------------------------------------------------------------------', file=f)
             # Merging
             FLRF = myFL.FL_DP_Forest()
@@ -373,7 +373,7 @@ if(expToRun[3]):
             print('complete_test_AUC: ' + str(finalAUC), file=f)
             print('COMPLETE_TEST_CM: ', file=f)
             print(finalCM, file=f)
-            print('--------------------------------------------------------------------------------------', file=f)
+            print('END-----------------------------------------------------------------------------------', file=f)
 
 # 5: Traditinoal Random Forests client-wise
 if(expToRun[4]):
