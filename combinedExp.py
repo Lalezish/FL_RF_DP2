@@ -254,7 +254,7 @@ with open("expOutput/2output.txt", "w") as f:
             pred = DP_RF.predict(x_validate)
             cm = pd.crosstab(pd.Series(y_validate, name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
             auc = roc_auc_score(y_validate, pred)
-            scores.append({'AUC': auc, 'Params': param, "Model" : RF})
+            scores.append({'AUC': auc, 'Params': param, "Model" : DP_RF})
 
             # To console
             print('PARAMS: ' + str(param))
