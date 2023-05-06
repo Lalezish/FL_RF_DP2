@@ -110,6 +110,14 @@ dataBottom = dataBottom.replace(np.nan, -1)
 dataLeft = dataLeft.replace(np.nan, -1)
 dataRight = dataRight.replace(np.nan, -1)
 
+# GOOD-SSH -> Normal
+indr = dataRight["NST_M_Label"] == 'GOOD-SSH'
+dataRight.loc[indr, "NST_M_Label"] = 'Normal'
+indl = dataLeft["NST_M_Label"] == 'GOOD-SSH'
+dataLeft.loc[indl, "NST_M_Label"] = 'Normal'
+indb = dataBottom["NST_M_Label"] == 'GOOD-SSH'
+dataBottom.loc[indb, "NST_M_Label"] = 'Normal'
+
 # Extracting label column
 boty = dataBottom["NST_M_Label"]
 botx = dataBottom.drop(columns=["NST_M_Label"], axis = 1)
@@ -124,8 +132,6 @@ lefty = np.where(lefty == "Normal", 0, 1)
 righty = np.where(righty == "Normal", 0, 1)
 
 # Encoding protocol column
-
-# Encoding protocol column
 label_encoder = LabelEncoder()
 protocols = pd.concat([leftx['protocol'], botx['protocol'], rightx['protocol']])
 label_encoder.fit(protocols)
@@ -138,7 +144,6 @@ leftxn = leftx.values
 
 rightx['protocol'] = label_encoder.transform(rightx['protocol'])
 rightxn = rightx.values
-
 
 # Splitting the dataset
 # Train =  70%, Validate = 10%, Test = 20%
@@ -181,8 +186,17 @@ y_validate = np.concatenate([y_validate_bottom, y_validate_left, y_validate_righ
 clients = {
     "left": {"train": {"x": x_train_left, "y": y_train_left}, "validate": {"x": x_validate_left, "y": y_validate_left}, "test": {"x": x_test_left, "y": y_test_left}},
     "right": {"train": {"x": x_train_right, "y": y_train_right}, "validate": {"x": x_validate_right, "y": y_validate_right}, "test": {"x": x_test_right, "y": y_test_right}},
-    "bottom": {"train": {"x": x_train_bottom, "y": y_train_bottom}, "validate": {"x": x_validate_bottom, "y": y_validate_bottom}, "test": {"x": x_test_bottom, "y": y_test_bottom}},
+    "bottom": {"train": {"x": x_train_bottom, "y": y_train_bottom}, "validate": {"x": x_validate_bottom, "y": y_validate_bottom}, "test": {"x": x_test_bottom, "y": y_test_bottom}}
 }
+# SET ANALYSIS
+#with open("setAnalysisOutput.txt", "w") as f:
+#    for client, datasets in clients.items():
+#        print("\nClient:", client, file=f)
+#        for dataset, data in datasets.items():
+#            y = data["y"]
+#            unique_classes, class_counts = np.unique(y, return_counts=True)
+#            for cls, count in zip(unique_classes, class_counts):
+#                print(dataset, "Class:", cls, "Count:", count, file=f)
 
 # 1: Traditional Random Forests
 # 2: Differentially private Random Forests
@@ -392,12 +406,10 @@ if(expToRun[4]):
             for param in params:
                 RF = RandomForestClassifier(**param)
                 RF.fit(clients[client]["train"]["x"], clients[client]["train"]["y"])
-
                 pred = RF.predict(clients[client]["validate"]["x"])
                 cm = pd.crosstab(pd.Series(clients[client]["validate"]["y"], name="Actual"), pd.Series(pred, name="Predicted"), normalize="all")
                 auc = roc_auc_score(clients[client]["validate"]["y"], pred)
                 scores.append({'AUC': auc, 'Params': param, "Model" : RF})
-
             sortedScores = sorted(scores, key=lambda x: x['AUC'], reverse=True)
             bestRF = sortedScores[0]["Model"] # Best model of client
             # Prediction on client_test_set
