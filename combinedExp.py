@@ -252,7 +252,7 @@ if(expToRun[1]):
     print("Running exp 2!")
     with open("expOutput/2output.txt", "w") as f:
         print("EXPERIMENT 2: Differential Private Random Forests. All data is merged and a DP_RF is trained and tested on the complete data.", file=f)
-        eps = [0.01, 0.1, 0.5, 1.0, 5.0, float('inf')]
+        eps = [0.01, 0.1, 0.5, 1.0, 5.0, 10, 50, 100]
         n_trees = [10, 50, 100, 200, 400]
         m_depths = [3, 5, 7, 11]
         m_samples = [0.7, 0.8, 0.9, None]
@@ -342,7 +342,7 @@ if(expToRun[3]):
     print("Running exp 4!")
     with open("expOutput/4output.txt", "w") as f:
         print("EXPERIMENT 4: Federated Differential Private Random Forests. Each client trains on own data is then merged and asked to predict on complete test-set", file=f)
-        eps = [0.01, 0.1, 0.5, 1.0, 5.0, float('inf')]
+        eps = [0.01, 0.1, 0.5, 1.0, 5.0, 10, 50, 100]
         n_trees = [10, 50, 100, 200, 400]
         m_depths = [3, 5, 7, 11]
         m_samples = [0.7, 0.8, 0.9, None]
@@ -436,7 +436,7 @@ if(expToRun[5]):
     print("Running exp 6!")
     with open("expOutput/6output.txt", "w") as f:
         print("EXPERIMENT 6: Client-wise DP training and evaluation on client- and complete test set", file=f)
-        eps = [0.01, 0.1, 0.5, 1.0, 5.0, float('inf')]
+        eps = [0.01, 0.1, 0.5, 1.0, 5.0, 10, 50, 100]
         n_trees = [10, 50, 100, 200, 400]
         m_depths = [3, 5, 7, 11]
         m_samples = [0.7, 0.8, 0.9, None]
