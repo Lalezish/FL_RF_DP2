@@ -204,7 +204,7 @@ clients = {
 # 4: Differentially Private Random Forests with Federated Learning
 # 5: Client-wise Traditional Random Forests
 # 6: Client-wise Differentially Private Random Forests
-expToRun = [True, True, True, True, True, True]
+expToRun = [False, False, False, True, False, False]
 
 # 1: Traditinoal Random Forests
 if(expToRun[0]):
@@ -252,7 +252,7 @@ if(expToRun[1]):
     print("Running exp 2!")
     with open("expOutput/2output.txt", "w") as f:
         print("EXPERIMENT 2: Differential Private Random Forests. All data is merged and a DP_RF is trained and tested on the complete data.", file=f)
-        eps = [0.01, 0.1, 0.5, 1.0, 5.0, 10, 50, 100]
+        eps = [0.01, 0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0]
         n_trees = [10, 50, 100, 200, 400]
         m_depths = [3, 5, 7, 11]
         m_samples = [0.7, 0.8, 0.9, None]
@@ -323,7 +323,7 @@ if(expToRun[2]):
             print('--------------------------------------------------------------------------------------', file=f)
         # Merging
         FLRF = myFL.FL_Forest()
-        mergedForest = FLRF.mergeALL(bestRF)
+        mergedForest = FLRF.mergeAUC(bestRF, 10, x_validate, y_validate)
         # Final prediction
         finalPred = mergedForest.predict(x_test)
         finalCM = pd.crosstab(pd.Series(y_test, name="Actual"), pd.Series(finalPred, name="Predicted"), normalize="all")
@@ -342,7 +342,7 @@ if(expToRun[3]):
     print("Running exp 4!")
     with open("expOutput/4output.txt", "w") as f:
         print("EXPERIMENT 4: Federated Differential Private Random Forests. Each client trains on own data is then merged and asked to predict on complete test-set", file=f)
-        eps = [0.01, 0.1, 0.5, 1.0, 5.0, 10, 50, 100]
+        eps = [0.01, 0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0]
         n_trees = [10, 50, 100, 200, 400]
         m_depths = [3, 5, 7, 11]
         m_samples = [0.7, 0.8, 0.9, None]
@@ -372,7 +372,7 @@ if(expToRun[3]):
                 print('--------------------------------------------------------------------------------------', file=f)
             # Merging
             FLRF = myFL.FL_DP_Forest()
-            mergedForest = FLRF.mergeALL(bestRF)
+            mergedForest = FLRF.mergeAUC(bestRF, 10, x_validate, y_validate)
             bestModels.append(mergedForest)
         # Final predictions
         for RF in bestModels:
@@ -436,7 +436,7 @@ if(expToRun[5]):
     print("Running exp 6!")
     with open("expOutput/6output.txt", "w") as f:
         print("EXPERIMENT 6: Client-wise DP training and evaluation on client- and complete test set", file=f)
-        eps = [0.01, 0.1, 0.5, 1.0, 5.0, 10, 50, 100]
+        eps = [0.01, 0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0]
         n_trees = [10, 50, 100, 200, 400]
         m_depths = [3, 5, 7, 11]
         m_samples = [0.7, 0.8, 0.9, None]

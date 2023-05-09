@@ -125,14 +125,14 @@ righty = np.where(righty == "Normal", 0, 1)
 
 # Splitting the dataset
 # Train =  70%, Validate = 10%, Test = 20%
-x_train_bottom, x_rest_bottom, y_train_bottom, y_rest_bottom = train_test_split(botx, boty, test_size = 0.3)
-x_validate_bottom, x_test_bottom, y_validate_bottom, y_test_bottom = train_test_split(x_rest_bottom, y_rest_bottom, test_size = 0.67)
+x_train_bottom, x_rest_bottom, y_train_bottom, y_rest_bottom = train_test_split(botx, boty, test_size = 0.3, stratify=boty, random_state=42)
+x_validate_bottom, x_test_bottom, y_validate_bottom, y_test_bottom = train_test_split(x_rest_bottom, y_rest_bottom, test_size = 0.67, stratify=y_rest_bottom, random_state=42)
 
-x_train_left, x_rest_left, y_train_left, y_rest_left = train_test_split(leftx, lefty, test_size = 0.3)
-x_validate_left, x_test_left, y_validate_left, y_test_left = train_test_split(x_rest_left, y_rest_left, test_size = 0.67)
+x_train_left, x_rest_left, y_train_left, y_rest_left = train_test_split(leftx, lefty, test_size = 0.3, stratify=lefty, random_state=42)
+x_validate_left, x_test_left, y_validate_left, y_test_left = train_test_split(x_rest_left, y_rest_left, test_size = 0.67, stratify=y_rest_left, random_state=42)
 
-x_train_right, x_rest_right, y_train_right, y_rest_right = train_test_split(rightx, righty, test_size = 0.3)
-x_validate_right, x_test_right, y_validate_right, y_test_right = train_test_split(x_rest_right, y_rest_right, test_size = 0.67)
+x_train_right, x_rest_right, y_train_right, y_rest_right = train_test_split(rightx, righty, test_size = 0.3, stratify=righty, random_state=42)
+x_validate_right, x_test_right, y_validate_right, y_test_right = train_test_split(x_rest_right, y_rest_right, test_size = 0.67, stratify=y_rest_right, random_state=42)
 
 # Dropping redundant columns
 #col_names = np.array(list(x_train))
@@ -165,6 +165,8 @@ x_test_right = min_max_scaler.transform(x_test_right)
 ### Experiments
 x_test = np.concatenate([x_test_bottom, x_test_left, x_test_right])
 y_test = np.concatenate([y_test_bottom, y_test_left, y_test_right])
+x_validate = np.concatenate([x_validate_bottom, x_validate_left, x_validate_right])
+y_validate = np.concatenate([y_validate_bottom, y_validate_left, y_validate_right])
 # 3: Federated traditional Random Forests
 with open("expOutput/3output.txt", "w") as f:
     n_trees = [10, 50, 100, 200, 400]

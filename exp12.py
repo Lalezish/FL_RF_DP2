@@ -109,8 +109,8 @@ y = np.where(y == "Normal", 0, 1)
 
 # Splitting the dataset
 # Train =  70%, Validate = 10%, Test = 20%
-x_train, x_rest, y_train, y_rest = train_test_split(x, y, test_size = 0.3)
-x_validate, x_test, y_validate, y_test = train_test_split(x_rest, y_rest, test_size = 0.67)
+x_train, x_rest, y_train, y_rest = train_test_split(x, y, test_size = 0.3, stratify=y, random_state=42)
+x_validate, x_test, y_validate, y_test = train_test_split(x_rest, y_rest, test_size = 0.67, stratify=y_rest, random_state=42)
 
 # Dropping redundant columns
 col_names = np.array(list(x_train))
@@ -134,8 +134,8 @@ x_test = min_max_scaler.transform(x_test)
 ### END OF DATA PREPROCESSING
 
 ### Experiments
-# 1: Traditional Random Forests with 10, 50, 100, 200, 400 trees
-# 2: Differential Private Random Forests with epsilon 0.01, 0.1, 0.5, 1.0, 5.0
+# 1: Traditional Random Forests
+# 2: Differential Private Random Forests
 
 # 1: Traditinoal Random Forests
 
